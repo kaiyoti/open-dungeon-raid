@@ -286,8 +286,8 @@
     max-height: none;
     /* A15n: overflow:visible (was hidden). The original's confirm control hangs BELOW the
        panel's bottom edge: decomp quad 7 (ctor @0x410e0) is 53x35 at panel-local (18,261)
-       (bottom 296 = 19 below 277); the video tab (U13, eumnCTG0AE8) is 66x34 at (-2,270)
-       (bottom 304 = 27 below 277, x32..98 y352..386 with panel x34 y82). GL never clips
+       (bottom 296 = 19 below 277) and quad 6 (the tab frame, U13c) is 91x52 at (0,262)
+       (bottom 314 = 37 below 277; emu_foldout_m1_sel.json quads 68-69). GL never clips
        it, so neither do we — see #menuConfirm.
        Nothing else in the card overflows (bands 33-3 + 4*57 + 16-3 = 271 = the content
        height), and the header lives on the sibling #menuHeadArt layer (U8: unclipped —
@@ -562,25 +562,39 @@
      53/320 = 16.5625vw, 35/480 = 7.291667vh. The sprite's bottom (296) is 19 units
      below the panel's own bottom edge (277) — the original's GL does not clip it, so
      the card's overflow:visible (above) does not either. */
-  body.orig-menu #menuConfirm { position: absolute;
-    /* U13 (Added 2): the confirm control is a TAB hanging off the panel's BOTTOM-LEFT, per
-       the primary video eumnCTG0AE8 (placement.md §A, frames e1/f0116, e2/f0851): box
-       x32..98 y352..386 with the panel resting at x34,y82 -> panel-local (-2,270) 66x34;
-       lavender side edges x32-34/x96-98 (158,158,212), mid-purple fill (92,78,157), white
-       tick x50..81 y358..377 = the tiles.png tickbox sprite's white mask (32x20, sprite
-       bbox x10..41 y9..28) at tab-local (18,6). The decomp quad 7 (ctor @0x410e0
-       SetQuad(7, pos(18,261), uv(143,288), 53x35)) is the 1.2.11 tick (emu2 draws it with
-       a RED vertex colour (107,4,2) — U8b); the video shows the purple/lavender tab, and
-       the user rule makes the video primary for appearance -> drawMenuTick paints the video
-       tab. Show/hide rule stays decomp: Render @0x40eb4:30 skips quads 6-7 while
-       this[0x20]==0 (no selection) -> .nosel. Panel-local -> CSS: x/320*100 vw, y/480*100 vh. */
-    left: calc(-0.625 * var(--vw)); top: calc(56.25 * var(--vh));
-    width: calc(20.625 * var(--vw)); height: calc(7.08333 * var(--vh));
-    display: block; flex: none; padding: 0; margin: 0;
-    border: 0; border-radius: 0; background: none;
-    color: transparent; font-size: 0; line-height: 0; cursor: pointer; }
-  body.orig-menu #menuConfirm canvas { display: block; width: 100%; height: 100%;
-    image-rendering: pixelated; }
+   body.orig-menu #menuConfirm { position: absolute;
+     /* U13c: the confirm control = FoldoutMenu quads 6+7, drawn from the atlas cells the
+        decomp + emu capture cite — NOT the U13-invented 66x34
+        (-2,270) box with painted lavender edges (that geometry came from the video and
+        disagrees with the decomp; the decomp wins).
+          q7 tickbox: ctor @0x410e0 SetQuad(7, pos(18,261), uv(143,288), uvSize(53,35))
+            (pool 0x31510..0x31524) = the button's rect; emu_foldout_m1_sel.json quad 69
+            bbox (41,351)-(94,386) uv (143,288,196,323) tint white.
+          q6 tab frame: ctor pool 109@0x314fc 383@0x31504 91@0x31508 52@0x3150c =
+            pos (0,262) 91x52, cell (109,383,91,52); emu quad 68 bbox (23,352)-(114,404).
+            The lavender outline that wraps the tab is BAKED in this sprite (pixel scan:
+            outline (142,149,194) cols 5..7/80..82 + row 40, tab interior (25,32,74)),
+            so the tab is part of the panel frame, not a detached box.
+        Draw order q6 then q7 (capture 68,69). Show/hide: Render @0x40eb4:30 skips quads
+        6-7 while this[0x20]==0 (no selection) -> .nosel. Panel-local -> CSS:
+        x/320*100 vw, y/480*100 vh. */
+     left: calc(5.625 * var(--vw)); top: calc(54.375 * var(--vh));      /* q7 (18,261) */
+     width: calc(16.5625 * var(--vw)); height: calc(7.291667 * var(--vh));  /* 53x35 */
+     display: block; flex: none; padding: 0; margin: 0;
+     border: 0; border-radius: 0; background: none;
+     color: transparent; font-size: 0; line-height: 0; cursor: pointer; }
+   body.orig-menu #menuConfirm canvas { display: block; position: absolute;
+     image-rendering: pixelated; }
+   /* U13c: q6 tab-frame canvas — panel-local (0,262) 91x52 = button-local (-18,+1). */
+   body.orig-menu #menuConfirm canvas.tabFrame {
+     left: calc(-5.625 * var(--vw)); top: calc(0.208333 * var(--vh));
+     width: calc(28.4375 * var(--vw)); height: calc(10.83333 * var(--vh)); }
+   /* q7 tickbox canvas fills the button rect (0,0) 53x35. */
+   body.orig-menu #menuConfirm canvas.tickBox { left: 0; top: 0; width: 100%; height: 100%; }
+   /* U13c: press tint — ProcessInput @0x41d54:23 SetQuadColour(7,200,200,200) while a
+      press is held inside CursorInQuad(7); rest tint white (ctor SetQuadColour loop).
+      HARNESS-side presentation: brightness(200/255) on the q7 canvas only. */
+   body.orig-menu #menuConfirm.pressed canvas.tickBox { filter: brightness(0.784314); }
   /* U8b STEP5: the tick box is drawn ONLY with a selection — Render @0x40eb4:30 skips quad
      indices 6 AND 7 while this[0x20] == 0 (set by ProcessInput @0x41d54:110-118: mode 0 needs
      both slots, modes 1/2 one row). The emu2_{levelup,shop,upgrade} captures (NO selection)
@@ -6899,18 +6913,19 @@ function cellFromEvent(e, inner) {
   // the runway rows; the runway is display-only (never hit-testable).
   // C1e: cell px = rect.width * FX.CELL (53/320 pitch), and the board starts at the
   // 1 px left margin (FX.BOARD_LEFT = 1/320), so subtract that margin from fx.
-  // U17 (desktop mouse offset): the canvas is CSS-scaled by sx = rect.width/cssSize whenever
-  // the letterbox makes the .screen wider than the cssSize cap of 480 (the Original CSS sets
-  // #boardWrap max-width:none, so the canvas fills the 720/960px screen while cssSize stays
-  // 480; browser/Windows zoom scale it too). The canvas aspect is locked to the backing store
-  // (width:100%, height:auto), so sy=sx. The X term is fully rect-based (robust). The OLD Y
-  // term subtracted a cssSize-based boardDy from a rect.width-based numerator, so the board-top
-  // offset was short by boardDy*(sx-1) px and the picked row shifted down (row+1 for sx>1.5,
-  // bottom row -> null) — the user-visible "cursor position is just wrong" on desktop (mobile
-  // fits the board to the screen width, sx=1, so it is unaffected). Express the board-top
-  // offset in CELLS (FX.BOARD_TOP/FX.CELL, the same constant the draw uses, cellCenter) and
-  // divide the pointer by the rect-based cellPx, exactly like fx. At sx=1 this is identical to
-  // the old formula; at any scale the picked cell == the cell under the cursor.
+  // U17 FIX (desktop mouse offset, user 2026-10-28): the canvas is CSS-scaled by
+  // sx = rect.width/cssSize whenever the letterbox makes the .screen wider than the
+  // cssSize cap of 480 (Original CSS sets #boardWrap max-width:none, :1944, so the canvas
+  // fills the 720/960px screen while cssSize stays 480; browser/Windows zoom scale it too).
+  // The canvas aspect is locked to the backing store (width:100%, height:auto), so sy=sx.
+  // The X term is fully rect-based (robust). The OLD Y term subtracted a cssSize-based
+  // boardDy from a rect.width-based numerator, so the board-top offset was short by
+  // boardDy*(sx-1) px and the picked row shifted down (row+1 for sx>1.5, bottom row -> null)
+  // — the user's "cursor position is just wrong" on desktop Edge (mobile fits the board to
+  // the screen width, sx=1, so it was unaffected). Express the board-top offset in CELLS
+  // (FX.BOARD_TOP/FX.CELL, the same constant the draw uses, cellCenter @:4060) and divide
+  // the pointer by the rect-based cellPx, exactly like fx. At sx=1 this is identical to the
+  // old formula; at any scale the picked cell == the cell under the cursor.
   const cellPx = rect.width * FX.CELL;
   const fx = (e.clientX - rect.left) / cellPx - FX.BOARD_LEFT / FX.CELL;
   const fy = (e.clientY - rect.top) / cellPx - FX.BOARD_TOP / FX.CELL;
@@ -8051,48 +8066,36 @@ function drawMenuHead(kind) {
   }
 }
 
-// A15n (presentation only): the confirm control's graphic = the baked tiles.png tick box
-// ui/foldoutmenu/tickbox — sprites.json (143,288,53,35), which is exactly the uv of
-// FoldoutMenu quad 7 (ctor @0x410e0, SetQuad(7, pos(18,261), uv(143,288), size(53,35))).
-// Drawn once per menu into #menuConfirm; the button's rect comes from the CSS rule
-// (panel-local x18..71, y261..296) and it carries no DOM text on Original.
+// U13c (presentation only): the confirm control = FoldoutMenu quads 6+7 drawn from the
+// tiles.png cells the decomp + emu capture cite:
+//   q6 tab frame (109,383,91,52) at panel-local (0,262) — the lavender outline wrapping
+//     the tab is baked in this sprite (ctor pool 0x314fc..0x3150c; emu quad 68).
+//   q7 tickbox (143,288,53,35) at panel-local (18,261) — ctor @0x410e0 SetQuad(7,
+//     pos(18,261), uv(143,288), uvSize(53,35)); emu quad 69; white tick + purple fill
+//     baked. Drawn once per menu into #menuConfirm (button rect = q7, CSS rule); the
+//     q6 canvas rides at button-local (-18,1); no DOM text on Original.
 function drawMenuTick(btn) {
   if (btn.querySelector('canvas')) return;
-  const s = art && art.sprites ? art.sprites['ui/foldoutmenu/tickbox'] : null;
   const tex = art && art.tex ? art.tex['tiles'] : null;
-  if (!s || !tex) return;
-  const cv = document.createElement('canvas');
-  if (typeof cv.getContext !== 'function') return;   // node stub: no 2D ctx
-  const S = ASSET_SCALE, TW = 66, TH = 34;   // tab box 66x34 panel px (CSS rect above)
-  cv.width = TW * S; cv.height = TH * S;     // X3: scaled backing
-  const c = cv.getContext('2d');
-  c.imageSmoothingEnabled = false;
-  // U13 (Added 2) video tab eumnCTG0AE8 e1/f0116+e2/f0851 pixel scan: mid-purple fill
-  // (92,78,157) (measured (87,75,145)..(89,76,144)), dark bottom strip (36,42,86) y32..34
-  // (measured (40,41,89)), lavender side edges 2px (158,158,212) (measured (159,159,214)).
-  c.fillStyle = 'rgb(92,78,157)'; c.fillRect(0, 0, TW * S, 32 * S);
-  c.fillStyle = 'rgb(36,42,86)';  c.fillRect(0, 32 * S, TW * S, 2 * S);
-  c.fillStyle = 'rgb(158,158,212)';
-  c.fillRect(0, 0, 2 * S, TH * S); c.fillRect((TW - 2) * S, 0, 2 * S, TH * S);
-  // The tick = the WHITE mask of the tiles.png tickbox sprite (ui/foldoutmenu/tickbox
-  // (143,288,53,35), ctor @0x410e0 quad 7 uv): sprite white bbox x10..41 y9..28 (32x20),
-  // drawn at tab-local (18,6) = video tick x50..81 y358..377 (panel x34 y82). The old
-  // U8b red multiply (107,4,2) reproduced the emu2 (1.2.11) vertex colour; the video
-  // (primary ground truth, user 2026-10-27) shows the white tick on purple — user:
-  // "the checkbox is the wrong color".
-  const oc = document.createElement('canvas');
-  oc.width = s.w * S; oc.height = s.h * S;
-  const octx = oc.getContext('2d');
-  octx.drawImage(tex, s.x * S, s.y * S, s.w * S, s.h * S, 0, 0, s.w * S, s.h * S);
-  const d = octx.getImageData(0, 0, oc.width, oc.height), p = d.data;
-  for (let i = 0; i < p.length; i += 4) {
-    const w = p[i] > 200 && p[i + 1] > 200 && p[i + 2] > 200;
-    p[i] = p[i + 1] = p[i + 2] = 255;
-    p[i + 3] = w ? 255 : 0;
-  }
-  octx.putImageData(d, 0, 0);
-  c.drawImage(oc, 10 * S, 9 * S, 32 * S, 20 * S, 18 * S, 6 * S, 32 * S, 20 * S);
-  btn.appendChild(cv);
+  if (!tex) return;
+  const cv6 = document.createElement('canvas');
+  const cv7 = document.createElement('canvas');
+  if (typeof cv6.getContext !== 'function') return;   // node stub: no 2D ctx
+  const S = ASSET_SCALE;
+  // U13c: q6 tab frame — ctor @0x410e0 pool (109,383) 91x52, panel-local (0,262);
+  // emu_foldout_m1_sel.json quad 68 bbox (23,352)-(114,404) uv (109,383,200,435).
+  cv6.className = 'tabFrame'; cv6.width = 91 * S; cv6.height = 52 * S;
+  const c6 = cv6.getContext('2d');
+  c6.imageSmoothingEnabled = false;
+  c6.drawImage(tex, 109 * S, 383 * S, 91 * S, 52 * S, 0, 0, 91 * S, 52 * S);
+  // U13c: q7 tickbox — ctor @0x410e0 SetQuad(7, pos(18,261), uv(143,288), uvSize(53,35))
+  // (pool 0x31510..0x31524); emu quad 69 bbox (41,351)-(94,386) uv (143,288,196,323).
+  // The white tick + purple (74,62,130) fill are BAKED in the sprite; rest tint white.
+  cv7.className = 'tickBox'; cv7.width = 53 * S; cv7.height = 35 * S;
+  const c7 = cv7.getContext('2d');
+  c7.imageSmoothingEnabled = false;
+  c7.drawImage(tex, 143 * S, 288 * S, 53 * S, 35 * S, 0, 0, 53 * S, 35 * S);
+  btn.appendChild(cv6); btn.appendChild(cv7);   // capture order: q6 (68) then q7 (69)
 }
 
 // U8b (presentation only): the row icon box = the baked dark tile ui/foldoutmenu/q14
@@ -8696,6 +8699,18 @@ document.getElementById('menuConfirm').onclick = () => {
   closeMenu();
   finishAction();
 };
+// U13c (presentation only): press tint on quad 7 — ProcessInput @0x41d54:23: while
+// this[0x20]!=0 a press inside CursorInQuad(7) sets SetQuadColour(7,200,200,200);
+// rest tint white (ctor @0x410e0 SetQuadColour loop). HARNESS-side: brightness on the
+// q7 canvas (the .pressed CSS rule), q6 tab frame keeps its white tint.
+{
+  const cb = document.getElementById('menuConfirm');
+  const off = () => cb.classList.remove('pressed');
+  cb.addEventListener('pointerdown', () => { if (!cb.classList.contains('nosel')) cb.classList.add('pressed'); });
+  cb.addEventListener('pointerup', off);
+  cb.addEventListener('pointerleave', off);
+  cb.addEventListener('pointercancel', off);
+}
 document.getElementById('menuCancel').onclick = () => {
   menuPicked = [];
   for (const el of document.getElementById('menuRows').children) el.classList.remove('picked');
