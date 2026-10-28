@@ -1,0 +1,72 @@
+# O1 — GitHub Pages: deploy the Original build at / and the HD build at /hd/
+# (AMENDMENT 2: the preservation release is playable out of the box; Pages source =
+#  GitHub Actions). Action versions pinned by full commit SHA.
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install emsdk 3.1.74 (matches rebuild/web/build.sh)
+        run: |
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git /tmp/emsdk
+          /tmp/emsdk/emsdk install 3.1.74
+          /tmp/emsdk/emsdk activate 3.1.74
+
+      - name: Build the web games (Original + HD)
+        shell: bash
+        run: |
+          source /tmp/emsdk/emsdk_env.sh
+          ./rebuild/web/build.sh --art
+          ./rebuild/web/build.sh --hd
+
+      - name: Assemble the static site
+        shell: bash
+        run: |
+          mkdir -p site/hd site/assets
+          cp rebuild/web/demo_art.html site/index.html
+          cp rebuild/web/demo_art_hd.html site/hd/index.html
+          # The pages are deployed at different depths than rebuild/web/, so rewrite the
+          # asset base exactly like tools/make_final.sh does for dist folders:
+          #   /            -> assets/ripped        (Original, 1x atlas)
+          #   /hd/         -> ../assets/ripped-hd  (HD, 4x atlas)
+          sed -i "s|let ASSET_BASE = '../../assets/ripped';|let ASSET_BASE = 'assets/ripped';|" site/index.html
+          sed -i "s|let ASSET_BASE = '../../assets/ripped-hd';|let ASSET_BASE = '../assets/ripped-hd';|" site/hd/index.html
+          grep -qF "let ASSET_BASE = 'assets/ripped';" site/index.html
+          grep -qF "let ASSET_BASE = '../assets/ripped-hd';" site/hd/index.html
+          cp -r assets/ripped site/assets/ripped
+          cp -r assets/ripped-hd site/assets/ripped-hd
+          find site -type f | wc -l
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
