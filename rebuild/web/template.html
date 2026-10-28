@@ -6906,10 +6906,14 @@ function cellFromEvent(e, inner) {
 
 canvas.addEventListener('pointerdown', e => {
   // F5: tap INSIDE the Original banner dismisses it (HelpMenu::Process @0x483a4:26-31 box
-  // test -> FadeOut). The original's tap routing between HelpMenu::Process and
-  // Game::ProcessInput for an overlapping press is not traced — this harness consumes the
-  // tap so a chain cannot start under the bubble.
-  if (helpTap(e)) { helpDismiss(); e.preventDefault(); return; }
+  // test -> FadeOut @0x4747c). U16 FIX: the press is NOT consumed. The original polls the
+  // touch state (Game+0x20/0x24/0x28) and Game::Process @0x339ac runs Game::ProcessInput
+  // (:84, chain start) AND HelpMenu::Process (:519, box test -> FadeOut) on the SAME touch
+  // in the SAME frame — the bubble fades and the chain starts together; no UI consumes the
+  // event. The old `return` ate every swipe that began under a bubble (the box is ~full
+  // board width, tx=0.01 w=0.98, and N0 anchors at the pressed cell) while the tip queue
+  // kept feeding new bubbles — the user-visible "tile swiping is broken".
+  if (helpTap(e)) helpDismiss();
   if (api.menu() >= 0 || api.over() || busy()) return;   // busy: tiles are falling (ProcessInput @0x330c0 gate)
   const cellHit = cellFromEvent(e);
   if (!cellHit || !pathOk([cellHit])) return;   // e.g. frozen tiles can't start a chain
