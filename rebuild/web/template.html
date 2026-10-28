@@ -6691,7 +6691,10 @@ function helpDismiss() {         // tap inside the banner box -> FadeOut (Proces
 function helpTap(e) {
   if (!helpDraw || helpDraw.out || !canvas) return false;
   const L = helpLayout(helpDraw.n, helpDraw.ax, helpDraw.ay);
-  const cr = canvas.getBoundingClientRect(), S = cssSize / 320;   // same scale as the draw
+  const cr = canvas.getBoundingClientRect(), S = cr.width / 320;   // U17: CSS px per emu px =
+  // the canvas's OWN rendered scale (the draw is cssSize-wide emu scaled to rect.width), so the
+  // box tracks the visible bubble at any dpr/zoom/letterbox; the old cssSize/320 was offset by
+  // rect.width/cssSize on desktop (same defect as cellFromEvent).
   const ex = (e.clientX - cr.left) / S, ey = (e.clientY - cr.top) / S;   // emu px
   return ex >= L.tx * 320 && ex < (L.tx + 0.98) * 320 &&
          ey >= L.ty * 320 && ey < (L.ty + L.H) * 320;
@@ -6896,8 +6899,21 @@ function cellFromEvent(e, inner) {
   // the runway rows; the runway is display-only (never hit-testable).
   // C1e: cell px = rect.width * FX.CELL (53/320 pitch), and the board starts at the
   // 1 px left margin (FX.BOARD_LEFT = 1/320), so subtract that margin from fx.
+  // U17 (desktop mouse offset): the canvas is CSS-scaled by sx = rect.width/cssSize whenever
+  // the letterbox makes the .screen wider than the cssSize cap of 480 (the Original CSS sets
+  // #boardWrap max-width:none, so the canvas fills the 720/960px screen while cssSize stays
+  // 480; browser/Windows zoom scale it too). The canvas aspect is locked to the backing store
+  // (width:100%, height:auto), so sy=sx. The X term is fully rect-based (robust). The OLD Y
+  // term subtracted a cssSize-based boardDy from a rect.width-based numerator, so the board-top
+  // offset was short by boardDy*(sx-1) px and the picked row shifted down (row+1 for sx>1.5,
+  // bottom row -> null) — the user-visible "cursor position is just wrong" on desktop (mobile
+  // fits the board to the screen width, sx=1, so it is unaffected). Express the board-top
+  // offset in CELLS (FX.BOARD_TOP/FX.CELL, the same constant the draw uses, cellCenter) and
+  // divide the pointer by the rect-based cellPx, exactly like fx. At sx=1 this is identical to
+  // the old formula; at any scale the picked cell == the cell under the cursor.
   const cellPx = rect.width * FX.CELL;
-  const fx = (e.clientX - rect.left) / cellPx - FX.BOARD_LEFT / FX.CELL, fy = (e.clientY - rect.top - boardDy) / cellPx;
+  const fx = (e.clientX - rect.left) / cellPx - FX.BOARD_LEFT / FX.CELL;
+  const fy = (e.clientY - rect.top) / cellPx - FX.BOARD_TOP / FX.CELL;
   const c = Math.floor(fx), r = Math.floor(fy);
   if (c < 0 || c > 5 || r < 0 || r > 5) return null;
   if (inner && Math.hypot(fx - c - 0.5, fy - r - 0.5) > HIT_R) return null;
