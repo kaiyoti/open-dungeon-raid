@@ -5,6 +5,10 @@ trace chains of tiles, level your classes, survive) that keeps it running on mod
 browsers and Android devices. C++ game core compiled to WebAssembly, a self-contained
 HTML/JS page, and an optional Android WebView wrapper.
 
+**▶ Play in your browser:** [kaiyoti.github.io/open-dungeon-raid](https://kaiyoti.github.io/open-dungeon-raid/)
+· [HD version](https://kaiyoti.github.io/open-dungeon-raid/hd/)
+· Android APKs: [Releases](https://github.com/kaiyoti/open-dungeon-raid/releases/latest)
+
 > ### Preservation notice
 > This repository is a **game-preservation effort**: the original *Dungeon Raid* is no
 > longer maintained or available, and this rebuild exists to keep the game playable on
@@ -45,8 +49,10 @@ version 1.2.11 (versionCode 14)** — `aapt2 dump badging` on the APK reads
 ## Play it
 
 * **Online:** <https://kaiyoti.github.io/open-dungeon-raid/> (Original) and
-  <https://kaiyoti.github.io/open-dungeon-raid/hd/> (HD) — after the repository is on
-  GitHub with *Settings → Pages → Source: GitHub Actions*.
+  <https://kaiyoti.github.io/open-dungeon-raid/hd/> (HD), built from `main` by GitHub Pages
+  (`.github/workflows/pages.yml`).
+* **Android:** download the APKs from the
+  [latest release](https://github.com/kaiyoti/open-dungeon-raid/releases/latest) and sideload them.
 * **Locally:** serve the repository root and open the art build:
 
 ```bash
